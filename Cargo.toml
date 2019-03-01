@@ -1,0 +1,12 @@
+[package]
+name = "devproxy"
+version = "0.1.0"
+authors = ["Elmar Athmer <elmar@athmer.org>"]
+edition = "2018"
+
+[dependencies]
+futures = "0.1"
+actix-web = "0.7"
+actix = "0.7"
+
+env_logger = "*"

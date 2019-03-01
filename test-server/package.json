@@ -1,0 +1,18 @@
+{
+  "name": "devproxy-test-server",
+  "version": "0.1.0",
+  "description": "Dummy HTTP Servers to test the actual devproxy",
+  "main": "index.js",
+  "author": "Elmar Athmer <elmar@athmer.org>",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "nodemon index.js"
+  },
+  "dependencies": {
+    "express": "^4.16.4"
+  },
+  "devDependencies": {
+    "nodemon": "^1.18.10"
+  }
+}

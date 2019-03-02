@@ -26,7 +26,7 @@ fn streaming(req: &HttpRequest) -> Box<Future<Item = HttpResponse, Error = Error
     });
 
     client_request_builder
-        .finish()
+        .body(Body::Streaming(Box::new(req.payload().from_err())))
         .unwrap()
         .send() // <- connect to host and send request
         .map_err(Error::from) // <- convert SendRequestError to an Error
@@ -53,7 +53,6 @@ fn main() {
             .middleware(middleware::Logger::default())
             .resource("/{path:.*}", |r| r.f(streaming))
     })
-    .workers(1)
     .bind("127.0.0.1:8080")
     .unwrap()
     .start();

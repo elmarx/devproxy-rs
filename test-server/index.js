@@ -12,14 +12,19 @@ app.get("/slow", (req, res) => {
         }, i * 500);
     }
 });
+
 app.get("/header", (req, res) => {
     res.set("upstream", "42");
     res.send("Sent response header 'upstream: 42'");
 });
 
-app.use((req, res) => {
+app.get("/echo", (req, res) => {
     res.status(200).write(`${req.method} http://${req.headers.host}${req.url}\n`);
     res.end(JSON.stringify(req.headers, null, 4));
+});
+
+app.post("/echo", (req, res) => {
+    req.pipe(res);
 });
 
 app.listen(8180);

@@ -4,7 +4,7 @@ const express = require("express");
 
 const app = express();
 
-app.get("/redirect", (req, res) => res.redirect(302, "http://github.com"));
+app.get("/redirect", (req, res) => res.redirect(302, "/"));
 app.get("/slow", (req, res) => {
     for(let i = 1; i < 6; i++) {
         setTimeout(() => {

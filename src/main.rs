@@ -31,11 +31,9 @@ fn streaming(req: &HttpRequest) -> Box<Future<Item = HttpResponse, Error = Error
         .send() // <- connect to host and send request
         .map_err(Error::from) // <- convert SendRequestError to an Error
         .and_then(|resp| {
-            // <- we received client response
-            Ok(HttpResponse::Ok()
-                // read one chunk from client response and send this chunk to a server response
-                // .from_err() converts PayloadError to an Error
-                .body(Body::Streaming(Box::new(resp.payload().from_err()))))
+            let mut response_builder = HttpResponse::build(resp.status());
+
+            Ok(response_builder.body(Body::Streaming(Box::new(resp.payload().from_err()))))
         })
         .responder()
 }

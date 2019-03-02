@@ -1,4 +1,4 @@
-devproxy [WIP]
+devproxy [WIP] [![Build Status](https://travis-ci.com/zauberpony/devproxy-rs.svg?branch=master)](https://travis-ci.com/zauberpony/devproxy-rs)
 ==============
 
 Devproxy is a transparent HTTP proxy to reroute HTTP requests, e.g. when developing in micro-service setups.

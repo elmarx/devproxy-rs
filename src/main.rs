@@ -33,6 +33,11 @@ fn streaming(req: &HttpRequest) -> Box<Future<Item = HttpResponse, Error = Error
         .and_then(|resp| {
             let mut response_builder = HttpResponse::build(resp.status());
 
+            // attach upstream-response headers to the downstream-response
+            resp.headers().iter().for_each(|(key, value)| {
+                response_builder.header(key, value.clone());
+            });
+
             Ok(response_builder.body(Body::Streaming(Box::new(resp.payload().from_err()))))
         })
         .responder()

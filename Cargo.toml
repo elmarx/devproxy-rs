@@ -1,4 +1,7 @@
 [package]
+description = "HTTP proxy to reroute requests for development"
+license = "MIT"
+repository = "https://github.com/zauberpony/devproxy-rs"
 name = "devproxy"
 version = "0.1.0"
 authors = ["Elmar Athmer <elmar@athmer.org>"]

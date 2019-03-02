@@ -13,8 +13,19 @@ fn streaming(req: &HttpRequest) -> Box<Future<Item = HttpResponse, Error = Error
         .and_then(|v| v.to_str().ok())
         .unwrap(); // no host header can not happen in HTTP 1.1, so… unwrap
 
-    // send client request
-    client::ClientRequest::get(format!("http://{}/{}", host, path))
+    let mut client_request_builder = client::ClientRequest::build();
+
+    client_request_builder
+        .no_default_headers() // do not add neither UserAgent nor Host-Header, just pass through the values from downstream
+        .method(req.method().clone())
+        .uri(format!("http://{}/{}", host, path));
+
+    // attach all headers from the downstream-request to the upstream-request
+    req.headers().iter().for_each(|(key, value)| {
+        client_request_builder.header(key, value.clone());
+    });
+
+    client_request_builder
         .finish()
         .unwrap()
         .send() // <- connect to host and send request

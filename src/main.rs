@@ -1,8 +1,11 @@
+use crate::clap_app::get_clap_app;
 use actix_web::{
     client, http::header::HOST, middleware, server, App, AsyncResponder, Body, Error, HttpMessage,
     HttpRequest, HttpResponse,
 };
 use futures::{Future, Stream};
+
+mod clap_app;
 
 /// streaming client request to a streaming server response
 fn streaming(req: &HttpRequest) -> Box<Future<Item = HttpResponse, Error = Error>> {
@@ -46,6 +49,9 @@ fn streaming(req: &HttpRequest) -> Box<Future<Item = HttpResponse, Error = Error
 fn main() {
     ::std::env::set_var("RUST_LOG", "actix_web=info");
     env_logger::init();
+
+    let _matches = get_clap_app().get_matches();
+
     let sys = actix::System::new("http-proxy");
 
     server::new(|| {

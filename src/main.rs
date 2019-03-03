@@ -1,4 +1,5 @@
 use crate::clap_app::get_clap_app;
+use crate::config::DevproxyConfig;
 use actix_web::{
     client, http::header::HOST, middleware, server, App, AsyncResponder, Body, Error, HttpMessage,
     HttpRequest, HttpResponse,
@@ -6,6 +7,7 @@ use actix_web::{
 use futures::{Future, Stream};
 
 mod clap_app;
+mod config;
 
 /// streaming client request to a streaming server response
 fn streaming(req: &HttpRequest) -> Box<Future<Item = HttpResponse, Error = Error>> {
@@ -52,6 +54,8 @@ fn main() {
 
     let _matches = get_clap_app().get_matches();
 
+    let config = dbg!(DevproxyConfig::default());
+
     let sys = actix::System::new("http-proxy");
 
     server::new(|| {
@@ -59,10 +63,10 @@ fn main() {
             .middleware(middleware::Logger::default())
             .resource("/{path:.*}", |r| r.f(streaming))
     })
-    .bind("127.0.0.1:8080")
+    .bind(config.addr)
     .unwrap()
     .start();
 
-    println!("Started http server: 127.0.0.1:8080");
+    println!("Started http server: {}", config.addr);
     let _ = sys.run();
 }

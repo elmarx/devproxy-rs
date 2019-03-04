@@ -12,5 +12,9 @@ futures = "0.1"
 actix-web = "0.7"
 actix = "0.7"
 clap = "2.32"
+http = "0.1"
 
 env_logger = "*"
+
+[dev-dependencies]
+maplit = "1.0"

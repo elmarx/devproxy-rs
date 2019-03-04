@@ -8,6 +8,7 @@ use futures::{Future, Stream};
 
 mod clap_app;
 mod config;
+mod mapper;
 
 /// streaming client request to a streaming server response
 fn streaming(req: &HttpRequest) -> Box<Future<Item = HttpResponse, Error = Error>> {

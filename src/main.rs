@@ -5,6 +5,7 @@ use actix_web::{
     HttpRequest, HttpResponse,
 };
 use futures::{Future, Stream};
+use std::path::PathBuf;
 
 mod clap_app;
 mod config;
@@ -53,9 +54,11 @@ fn main() {
     ::std::env::set_var("RUST_LOG", "actix_web=info");
     env_logger::init();
 
-    let _matches = get_clap_app().get_matches();
+    let matches = get_clap_app().get_matches();
 
-    let config = dbg!(DevproxyConfig::default());
+    let config_file = matches.value_of("config").map(PathBuf::from);
+
+    let config = dbg!(DevproxyConfig::new(config_file));
 
     let sys = actix::System::new("http-proxy");
 

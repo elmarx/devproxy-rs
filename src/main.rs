@@ -1,10 +1,10 @@
 use crate::clap_app::get_clap_app;
 use crate::config::DevproxyConfig;
 use actix_web::{
-    client, http::header::HOST, middleware, server, App, AsyncResponder, Body, Error, HttpMessage,
-    HttpRequest, HttpResponse,
+    client::Client, http::header::HOST, middleware, web, App, Error, HttpRequest, HttpResponse,
+    HttpServer,
 };
-use futures::{Future, Stream};
+use futures::Future;
 use std::path::PathBuf;
 
 mod clap_app;
@@ -12,7 +12,11 @@ mod config;
 mod mapper;
 
 /// streaming client request to a streaming server response
-fn streaming(req: &HttpRequest) -> Box<Future<Item = HttpResponse, Error = Error>> {
+fn streaming(
+    req: HttpRequest,
+    payload: web::Payload,
+    client: web::Data<Client>,
+) -> impl Future<Item = HttpResponse, Error = impl Into<Error>> {
     let path = req.match_info().get("path").unwrap();
     let host = req
         .headers()
@@ -20,34 +24,28 @@ fn streaming(req: &HttpRequest) -> Box<Future<Item = HttpResponse, Error = Error
         .and_then(|v| v.to_str().ok())
         .unwrap(); // no host header can not happen in HTTP 1.1, so… unwrap
 
-    let mut client_request_builder = client::ClientRequest::build();
+    let forwarded_req = client
+        .request_from(format!("http://{}/{}", host, path), req.head())
+        .no_default_headers(); // do not add neither UserAgent nor Host-Header, just pass through the values from downstream
 
-    client_request_builder
-        .no_default_headers() // do not add neither UserAgent nor Host-Header, just pass through the values from downstream
-        .method(req.method().clone())
-        .uri(format!("http://{}/{}", host, path));
+    forwarded_req
+        .send_stream(payload)
+        .map_err(Error::from)
+        .and_then(|upstream_res| {
+            let mut res = HttpResponse::build(upstream_res.status());
+            res.no_chunking();
 
-    // attach all headers from the downstream-request to the upstream-request
-    req.headers().iter().for_each(|(key, value)| {
-        client_request_builder.header(key, value.clone());
-    });
+            // send upstream headers to downstream
+            upstream_res
+                .headers()
+                .iter()
+                .filter(|(h, _)| *h != "connection") // do not pass through connection-headers
+                .for_each(|(header_name, header_value)| {
+                    res.header(header_name.clone(), header_value.clone());
+                });
 
-    client_request_builder
-        .body(Body::Streaming(Box::new(req.payload().from_err())))
-        .unwrap()
-        .send() // <- connect to host and send request
-        .map_err(Error::from) // <- convert SendRequestError to an Error
-        .and_then(|resp| {
-            let mut response_builder = HttpResponse::build(resp.status());
-
-            // attach upstream-response headers to the downstream-response
-            resp.headers().iter().for_each(|(key, value)| {
-                response_builder.header(key, value.clone());
-            });
-
-            Ok(response_builder.body(Body::Streaming(Box::new(resp.payload().from_err()))))
+            res.streaming(upstream_res)
         })
-        .responder()
 }
 
 fn main() {
@@ -62,10 +60,11 @@ fn main() {
 
     let sys = actix::System::new("http-proxy");
 
-    server::new(|| {
+    HttpServer::new(|| {
         App::new()
-            .middleware(middleware::Logger::default())
-            .resource("/{path:.*}", |r| r.f(streaming))
+            .data(Client::new())
+            .wrap(middleware::Logger::default())
+            .service(web::resource("/{path:.*}").to_async(streaming))
     })
     .bind(config.addr)
     .unwrap()

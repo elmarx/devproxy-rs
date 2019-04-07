@@ -1,10 +1,12 @@
 use crate::clap_app::get_clap_app;
 use crate::config::DevproxyConfig;
+use crate::mapper::Mapper;
 use actix_web::{
     client::Client, http::header::HOST, middleware, web, App, Error, HttpRequest, HttpResponse,
     HttpServer,
 };
 use futures::Future;
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 mod clap_app;
@@ -16,6 +18,7 @@ fn streaming(
     req: HttpRequest,
     payload: web::Payload,
     client: web::Data<Client>,
+    mapper: web::Data<Mapper>,
 ) -> impl Future<Item = HttpResponse, Error = impl Into<Error>> {
     let path = req.match_info().get("path").unwrap();
     let host = req
@@ -24,9 +27,9 @@ fn streaming(
         .and_then(|v| v.to_str().ok())
         .unwrap(); // no host header can not happen in HTTP 1.1, so… unwrap
 
-    let forwarded_req = client
-        .request_from(format!("http://{}/{}", host, path), req.head())
-        .no_default_headers(); // do not add neither UserAgent nor Host-Header, just pass through the values from downstream
+    let url = dbg!(mapper.uri(host, path));
+
+    let forwarded_req = client.request_from(url, req.head()).no_default_headers(); // do not add neither UserAgent nor Host-Header, just pass through the values from downstream
 
     forwarded_req
         .send_stream(payload)
@@ -48,6 +51,13 @@ fn streaming(
         })
 }
 
+fn get_sample_mapping<'a>() -> Mapper<'a> {
+    let mut map = HashMap::new();
+    map.insert("example.com", "localhost:8180");
+
+    Mapper::new(map)
+}
+
 fn main() {
     ::std::env::set_var("RUST_LOG", "actix_web=info");
     env_logger::init();
@@ -63,6 +73,7 @@ fn main() {
     HttpServer::new(|| {
         App::new()
             .data(Client::new())
+            .data(get_sample_mapping())
             .wrap(middleware::Logger::default())
             .service(web::resource("/{path:.*}").to_async(streaming))
     })

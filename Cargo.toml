@@ -9,8 +9,8 @@ edition = "2018"
 
 [dependencies]
 futures = "0.1"
-actix-web = "1.0.0-alpha.3"
-actix = "0.8.0-alpha.2"
+actix-web = "1.0.0-beta.1"
+actix = "0.8"
 clap = "2.32"
 http = "0.1"
 

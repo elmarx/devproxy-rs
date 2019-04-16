@@ -29,7 +29,7 @@ fn streaming(
 
     let url = dbg!(mapper.uri(host, path));
 
-    let forwarded_req = client.request_from(url, req.head()).no_default_headers(); // do not add neither UserAgent nor Host-Header, just pass through the values from downstream
+    let forwarded_req = client.request_from(url, req.head());
 
     forwarded_req
         .send_stream(payload)
